@@ -1,5 +1,5 @@
 const Game = require('../models/Game');
-const User = require('../models/user');
+const User = require('../models/User');
 
 // Obtener todos los juegos para la tienda
 exports.getAllGames = async (req, res) => {
