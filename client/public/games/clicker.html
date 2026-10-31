@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SteamLite - Clicker Tycoon</title>
+    <style>
+        body { margin: 0; background-color: #171a21; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; user-select: none; }
+        h1 { color: #00A4FF; text-shadow: 0 0 10px rgba(0, 164, 255, 0.5); }
+        #score { font-size: 48px; font-weight: bold; color: #4c6b22; margin: 20px 0; }
+        #click-btn { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #0056b3, #00A4FF); border: 4px solid #2a475e; cursor: pointer; font-size: 60px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; box-shadow: 0 0 30px rgba(0, 164, 255, 0.4); }
+        #click-btn:active { transform: scale(0.95); }
+        .upgrades { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; width: 320px; }
+        .upgrade { background-color: #2a475e; padding: 15px; border-radius: 8px; text-align: center; }
+        .upgrade button { width: 100%; padding: 10px; background-color: #4c6b22; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .upgrade button:disabled { background-color: #555; cursor: not-allowed; }
+        #prestige-btn { background-color: #9b59b6; }
+    </style>
+</head>
+<body>
+    <h1>Clicker Tycoon</h1>
+    <p>¡Genera energía y alcanza el prestigio!</p>
+    <div id="score">0</div>
+    <div id="click-btn">⚡</div>
+
+    <div class="upgrades">
+        <div class="upgrade">
+            <h3>Auto-Energía</h3>
+            <p>Costo: <span id="cost-1">10</span></p>
+            <button id="buy-1" disabled>Comprar (+1/s)</button>
+        </div>
+        <div class="upgrade">
+            <h3>Prestigio (Reinicio)</h3>
+            <p>Requiere 1000 puntos. Ganarás x<span id="prestige-mult">2</span> multiplicador.</p>
+            <button id="prestige-btn" disabled>¡Prestigio!</button>
+        </div>
+    </div>
+
+    <script>
+        let score = 0, autoClickers = 0, cost1 = 10, multiplier = 1;
+        let prestigeLevel = 1, prestigeCost = 1000;
+
+        const scoreEl = document.getElementById('score');
+        const btn = document.getElementById('click-btn');
+        const buyBtn = document.getElementById('buy-1');
+        const costEl = document.getElementById('cost-1');
+        const prestigeBtn = document.getElementById('prestige-btn');
+        const prestigeMultEl = document.getElementById('prestige-mult');
+
+        btn.addEventListener('click', () => { score += multiplier; updateUI(); });
+        buyBtn.addEventListener('click', () => {
+            if (score >= cost1) {
+                score -= cost1; autoClickers++; cost1 = Math.floor(cost1 * 1.5);
+                updateUI();
+            }
+        });
+
+        prestigeBtn.addEventListener('click', () => {
+            if (score >= prestigeCost) {
+                score = 0; autoClickers = 0; cost1 = 10;
+                prestigeLevel++; multiplier = prestigeLevel;
+                prestigeCost = Math.floor(prestigeCost * 2);
+                prestigeMultEl.innerText = multiplier;
+                updateUI();
+            }
+        });
+
+        setInterval(() => { if (autoClickers > 0) { score += autoClickers; updateUI(); } }, 1000);
+
+        function updateUI() {
+            scoreEl.innerText = score;
+            costEl.innerText = cost1;
+            buyBtn.disabled = score < cost1;
+            prestigeBtn.disabled = score < prestigeCost;
+        }
+        updateUI();
+    </script>
+</body>
+</html>

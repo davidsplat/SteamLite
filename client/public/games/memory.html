@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SteamLite - Memory Match</title>
+    <style>
+        body { margin: 0; background-color: #171a21; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* Pantallas (Inicio, Juego, Game Over) */
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color: #171a21; z-index: 10; }
+        .screen.active { display: flex; }
+
+        h1 { color: #00A4FF; text-shadow: 0 0 10px rgba(0, 164, 255, 0.5); font-size: 36px; margin-bottom: 10px; }
+        p { color: #8f98a0; text-align: center; max-width: 500px; line-height: 1.5; }
+
+        /* Botones generales */
+        .btn { padding: 12px 24px; margin: 10px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background-color: #0056b3; color: white; }
+        .btn-primary:hover { background-color: #007bff; box-shadow: 0 0 15px rgba(0, 164, 255, 0.5); }
+        .btn-secondary { background-color: #2a475e; color: white; }
+        .btn-secondary:hover { background-color: #3b5c78; }
+
+        /* Tutorial */
+        .tutorial-box { background-color: #2a475e; padding: 20px; border-radius: 10px; max-width: 600px; margin-bottom: 20px; border: 1px solid #0056b3; }
+
+        /* Juego */
+        #game-hud { display: flex; justify-content: space-between; width: 600px; font-size: 20px; font-weight: bold; margin-bottom: 20px; }
+        #timer { color: #b32222; }
+        #level { color: #4c6b22; }
+        
+        .grid { display: grid; gap: 10px; perspective: 1000px; }
+        .card { width: 80px; height: 80px; position: relative; transform-style: preserve-3d; transition: transform 0.4s; cursor: pointer; }
+        .card.flipped { transform: rotateY(180deg); }
+        .card.matched { visibility: hidden; }
+        .front, .back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 35px; border-radius: 6px; }
+        .front { background-color: #2a475e; border: 2px solid #0056b3; }
+        .back { background-color: #0056b3; transform: rotateY(180deg); }
+
+        /* Modal de ajustes */
+        #settings-modal { display: none; position: absolute; background-color: #1b2838; padding: 30px; border-radius: 12px; border: 2px solid #0056b3; box-shadow: 0 0 30px rgba(0, 86, 179, 0.5); z-index: 20; text-align: center; }
+        #settings-modal select { padding: 10px; font-size: 16px; border-radius: 6px; margin-top: 10px; background-color: #2a475e; color: white; border: none; outline: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. PANTALLA DE INICIO Y TUTORIAL -->
+    <div id="start-screen" class="screen active">
+        <h1>Memory Match</h1>
+        <div class="tutorial-box">
+            <h3 style="color: #00A4FF; margin-top: 0;">¿Cómo jugar?</h3>
+            <p>El objetivo es encontrar todas las parejas de cartas ocultas. Haz clic en dos cartas para voltearlas. Si los símbolos coinciden, se quedarán destapadas. Si no, se volverán a tapar.</p>
+            <p>Encuentra todas las parejas antes de que se acabe el tiempo para avanzar al siguiente nivel. ¡Cada nivel tiene menos tiempo y más cartas!</p>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="startGame(1)">▶ Iniciar Juego (Nivel 1)</button>
+            <button class="btn btn-secondary" onclick="openSettings()">⚙ Ajustes</button>
+        </div>
+    </div>
+
+    <!-- 2. PANTALLA DE JUEGO -->
+    <div id="game-screen" class="screen">
+        <div id="game-hud">
+            <span id="level">Nivel: 1</span>
+            <span id="timer">Tiempo: 40.0s</span>
+        </div>
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <!-- 3. PANTALLA DE GAME OVER / NIVEL COMPLETADO -->
+    <div id="end-screen" class="screen">
+        <h1 id="end-title">¡Nivel Completado!</h1>
+        <p id="end-message">Has superado el nivel con éxito.</p>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="next-btn" class="btn btn-primary" onclick="nextLevel()">Siguiente Nivel ▶</button>
+            <button class="btn btn-secondary" onclick="location.reload()">Volver al Inicio</button>
+        </div>
+    </div>
+
+    <!-- 4. MODAL DE AJUSTES -->
+    <div id="settings-modal">
+        <h2 style="color: #00A4FF; margin-top: 0;">Ajustes</h2>
+        <p>Dificultad:</p>
+        <select id="difficulty">
+            <option value="easy">Fácil (Más tiempo)</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Difícil (Menos tiempo)</option>
+        </select>
+        <br>
+        <button class="btn btn-primary" style="margin-top: 20px;" onclick="closeSettings()">Guardar y Cerrar</button>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentLevel = 1;
+        let timeLeft = 40.0;
+        let timerInterval;
+        let gameActive = false;
+        let hasFlipped = false, lockBoard = false, firstCard, secondCard, matchedPairs = 0;
+        let totalPairs = 8;
+        let difficultyMultiplier = 1;
+
+        const emojis = ['🎮', '🎲', '🚀', '👾', '🏆', '⚔️', '🛡️', '🔫', '💎', '🔥', '🌟', '🧠', '👑', '💣', '🎯', '🎨'];
+
+        // --- LÓGICA DE PANTALLAS ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function openSettings() { document.getElementById('settings-modal').style.display = 'block'; }
+        function closeSettings() { 
+            document.getElementById('settings-modal').style.display = 'none'; 
+            const diff = document.getElementById('difficulty').value;
+            if (diff === 'easy') difficultyMultiplier = 1.5;
+            else if (diff === 'hard') difficultyMultiplier = 0.7;
+            else difficultyMultiplier = 1;
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+        function startGame(level) {
+            currentLevel = level;
+            showScreen('game-screen');
+            
+            // Configuración según nivel (Aumenta parejas cada 2 niveles)
+            totalPairs = 6 + Math.floor(level / 2); 
+            if (totalPairs > 12) totalPairs = 12; // Límite máximo de cartas
+
+            // Tiempo base: 40s + 10s por pareja extra, multiplicado por dificultad
+            timeLeft = (40 + (totalPairs - 6) * 10) * difficultyMultiplier;
+            
+            matchedPairs = 0;
+            hasFlipped = false; lockBoard = false; firstCard = null; secondCard = null;
+            gameActive = true;
+
+            document.getElementById('level').innerText = `Nivel: ${currentLevel}`;
+            
+            generateGrid();
+            updateTimerDisplay();
+
+            // Iniciar temporizador
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!gameActive) return;
+                timeLeft -= 0.1;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    gameActive = false;
+                    endGame(false);
+                }
+            }, 100);
+        }
+
+        function generateGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            // Ajustar columnas según cantidad de cartas
+            const cols = totalPairs <= 8 ? 4 : (totalPairs <= 10 ? 5 : 6);
+            grid.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+
+            // Seleccionar emojis aleatorios para este nivel
+            let selectedEmojis = [...emojis].sort(() => Math.random() - 0.5).slice(0, totalPairs);
+            let deck = [...selectedEmojis, ...selectedEmojis].sort(() => Math.random() - 0.5);
+
+            deck.forEach(emoji => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.innerHTML = `<div class="front">?</div><div class="back">${emoji}</div>`;
+                card.addEventListener('click', flipCard);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard() {
+            if (lockBoard || this === firstCard || !gameActive || this.classList.contains('flipped')) return;
+            this.classList.add('flipped');
+
+            if (!hasFlipped) { hasFlipped = true; firstCard = this; return; }
+            secondCard = this;
+            checkMatch();
+        }
+
+        function checkMatch() {
+            if (firstCard.innerHTML === secondCard.innerHTML) {
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                matchedPairs++;
+                
+                if (matchedPairs === totalPairs) {
+                    gameActive = false;
+                    clearInterval(timerInterval);
+                    endGame(true);
+                }
+                resetBoard();
+            } else {
+                lockBoard = true;
+                setTimeout(() => {
+                    firstCard.classList.remove('flipped');
+                    secondCard.classList.remove('flipped');
+                    resetBoard();
+                }, 800);
+            }
+        }
+
+        function resetBoard() {
+            [hasFlipped, lockBoard] = [false, false];
+            [firstCard, secondCard] = [null, null];
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timer').innerText = `Tiempo: ${Math.max(0, timeLeft).toFixed(1)}s`;
+        }
+
+        function endGame(win) {
+            showScreen('end-screen');
+            const title = document.getElementById('end-title');
+            const msg = document.getElementById('end-message');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (win) {
+                title.innerText = "¡Nivel Completado!";
+                title.style.color = "#4c6b22";
+                msg.innerText = `Has superado el nivel ${currentLevel}. ¡Prepárate para el siguiente!`;
+                nextBtn.style.display = 'inline-block';
+            } else {
+                title.innerText = "¡Tiempo Agotado!";
+                title.style.color = "#b32222";
+                msg.innerText = `Has perdido en el nivel ${currentLevel}. Inténtalo de nuevo.`;
+                nextBtn.style.display = 'none';
+            }
+        }
+
+        function nextLevel() {
+            startGame(currentLevel + 1);
+        }
+
+    </script>
+</body>
+</html>

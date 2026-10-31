@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SteamLite - Phantom Blade</title>
+    <style>
+        body { margin: 0; background-color: #171a21; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { background-color: #1b2838; border: 2px solid #b32222; border-radius: 8px; box-shadow: 0 0 25px rgba(179, 34, 34, 0.5); }
+        h1 { color: #b32222; text-shadow: 0 0 10px rgba(179, 34, 34, 0.7); }
+        #hud { display: flex; justify-content: space-between; width: 400px; margin-bottom: 10px; font-weight: bold; }
+        #timer { color: #00A4FF; }
+    </style>
+</head>
+<body>
+    <h1>Phantom Blade: Supervivencia</h1>
+    <div id="hud">
+        <span>Puntos: <span id="score" style="color:#4c6b22">0</span></span>
+        <span>Tiempo: <span id="timer">15.0</span>s</span>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+
+        let player = { x: 180, y: 180, size: 40, speed: 5, dx: 0, dy: 0 };
+        let target = { x: 100, y: 100, size: 20, dx: 2, dy: 2 };
+        let score = 0;
+        let timeLeft = 15.0;
+        let gameActive = true;
+        let keys = {};
+
+        document.addEventListener('keydown', e => keys[e.key] = true);
+        document.addEventListener('keyup', e => keys[e.key] = false);
+
+        function update() {
+            if (!gameActive) return;
+
+            // Mover jugador
+            if ((keys['ArrowUp'] || keys['w']) && player.y > 0) player.y -= player.speed;
+            if ((keys['ArrowDown'] || keys['s']) && player.y + player.size < canvas.height) player.y += player.speed;
+            if ((keys['ArrowLeft'] || keys['a']) && player.x > 0) player.x -= player.speed;
+            if ((keys['ArrowRight'] || keys['d']) && player.x + player.size < canvas.width) player.x += player.speed;
+
+            // Mover objetivo (IA simple)
+            target.x += target.dx;
+            target.y += target.dy;
+            if (target.x <= 0 || target.x + target.size >= canvas.width) target.dx *= -1;
+            if (target.y <= 0 || target.y + target.size >= canvas.height) target.dy *= -1;
+
+            // Colisión
+            if (player.x < target.x + target.size && player.x + player.size > target.x &&
+                player.y < target.y + target.size && player.y + player.size > target.y) {
+                score++;
+                scoreEl.innerText = score;
+                // Aumentar velocidad y reducir tiempo
+                target.dx *= 1.1;
+                target.dy *= 1.1;
+                timeLeft = Math.max(3, timeLeft - 0.5); 
+                target.x = Math.random() * (canvas.width - target.size);
+                target.y = Math.random() * (canvas.height - target.size);
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1b2838';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Jugador (Espada)
+            ctx.fillStyle = '#0056b3';
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+            
+            // Objetivo (Enemigo)
+            ctx.fillStyle = '#b32222';
+            ctx.beginPath();
+            ctx.arc(target.x + 10, target.y + 10, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function gameLoop() {
+            if (gameActive) {
+                update();
+                draw();
+                timeLeft -= 0.016; // Restar tiempo
+                timerEl.innerText = timeLeft.toFixed(1);
+
+                if (timeLeft <= 0) {
+                    gameActive = false;
+                    alert(`¡Tiempo agotado! Puntos totales: ${score}`);
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>

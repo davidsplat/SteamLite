@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SteamLite - Target Rush</title>
+    <style>
+        body { margin: 0; background-color: #171a21; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        h1 { color: #00A4FF; text-shadow: 0 0 10px rgba(0, 164, 255, 0.5); margin-bottom: 10px; }
+        #hud { display: flex; justify-content: space-between; width: 600px; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        #timer { color: #b32222; }
+        canvas { background-color: #0f172a; border: 2px solid #2a475e; border-radius: 8px; box-shadow: 0 0 20px rgba(0, 164, 255, 0.3); cursor: crosshair; }
+        #game-over { display: none; position: absolute; background-color: rgba(23, 26, 33, 0.95); padding: 40px; border-radius: 12px; text-align: center; border: 2px solid #00A4FF; box-shadow: 0 0 30px rgba(0, 164, 255, 0.5); }
+        #game-over h2 { color: #00A4FF; font-size: 32px; margin-top: 0; }
+        #game-over button { margin-top: 20px; padding: 12px 24px; background-color: #4c6b22; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        #game-over button:hover { background-color: #5a7d28; }
+    </style>
+</head>
+<body>
+    <h1>Target Rush</h1>
+    <div id="hud">
+        <span>Puntos: <span id="score" style="color: #4c6b22;">0</span></span>
+        <span>Tiempo: <span id="timer">30</span>s</span>
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <div id="game-over">
+        <h2>¡Tiempo Agotado!</h2>
+        <p style="font-size: 24px;">Puntuación Final: <span id="final-score" style="color: #4c6b22; font-weight: bold;"></span></p>
+        <button onclick="location.reload()">Jugar de Nuevo</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreEl = document.getElementById('final-score');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = true;
+        
+        // Definimos un objetivo (círculo)
+        let target = { x: 300, y: 200, r: 30, color: '#b32222' };
+
+        // Función para mover el objetivo a una posición aleatoria
+        function moveTarget() {
+            target.x = Math.random() * (canvas.width - target.r * 2) + target.r;
+            target.y = Math.random() * (canvas.height - target.r * 2) + target.r;
+            
+            // Hacerlo más pequeño con el tiempo (más difícil)
+            if (target.r > 15) {
+                target.r -= 0.5;
+            }
+        }
+
+        // Detectar clics en el canvas
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calcular distancia entre el clic y el centro del objetivo
+            const distance = Math.sqrt((mouseX - target.x) ** 2 + (mouseY - target.y) ** 2);
+
+            if (distance < target.r) {
+                // ¡Le dio!
+                score += 10;
+                scoreEl.innerText = score;
+                moveTarget();
+            } else {
+                // Falló (podemos restar puntos o no)
+                score = Math.max(0, score - 2);
+                scoreEl.innerText = score;
+            }
+        });
+
+        // Temporizador
+        const timerInterval = setInterval(() => {
+            if (!gameActive) return;
+            timeLeft--;
+            timerEl.innerText = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                gameActive = false;
+                finalScoreEl.innerText = score;
+                gameOverScreen.style.display = 'block';
+            }
+        }, 1000);
+
+        // Dibujar el objetivo
+        function draw() {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dibujar el objetivo
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
+            ctx.fillStyle = target.color;
+            ctx.fill();
+            
+            // Anillo exterior para que se vea más llamativo
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.r + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Bucle del juego
+        function gameLoop() {
+            if (gameActive) {
+                draw();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Iniciar
+        moveTarget();
+        gameLoop();
+    </script>
+</body>
+</html>
