@@ -7,7 +7,9 @@ const connectDB = require('./config/db');
 const app = express();
 
 // Middlewares
-app.use(cors()); // Permite peticiones desde el Frontend
+app.use(cors({
+  origin: 'https://steam-lite-psi.vercel.app/' // O pon la URL de tu Vercel
+}));
 app.use(express.json()); // Permite recibir datos en formato JSON
 
 // Conectar a la Base de Datos
