@@ -23,7 +23,7 @@ const Cart = () => {
 
             // Compramos cada juego del carrito uno por uno
             for (const game of cart) {
-                await axios.post('http://localhost:5000/api/games/buy', {
+                await axios.post('https://steamlite-s8j9.onrender.com/api/games/buy', {
                     gameId: game._id,
                     userId: userId
                 });

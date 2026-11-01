@@ -15,7 +15,7 @@ const Library = () => {
         const fetchLibrary = async () => {
             try {
                 // Llamamos a la nueva ruta del backend
-                const res = await axios.get(`http://localhost:5000/api/games/library/${userId}`);
+                const res = await axios.get(`https://steamlite-s8j9.onrender.com/api/games/library/${userId}`);
                 setMyGames(res.data);
             } catch (error) {
                 console.error("Error cargando biblioteca", error);
@@ -33,7 +33,7 @@ const Library = () => {
     const handleRemoveGame = async (gameId) => {
         if (window.confirm("¿Seguro que quieres desinstalar este juego de tu biblioteca?")) {
             try {
-                await axios.delete(`http://localhost:5000/api/games/library/${userId}/${gameId}`);
+                await axios.delete(`https://steamlite-s8j9.onrender.com/api/games/library/${userId}/${gameId}`);
                 // Actualizamos la lista en pantalla
                 setMyGames(myGames.filter(g => g._id !== gameId));
             } catch (error) {

@@ -13,7 +13,7 @@ const Home = () => {
     useEffect(() => {
         const fetchGames = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/games');
+                const res = await axios.get('https://steamlite-s8j9.onrender.com/api/games');
                 setGames(res.data);
             } catch (error) {
                 console.error("Error cargando juegos", error);
