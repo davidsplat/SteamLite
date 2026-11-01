@@ -8,7 +8,7 @@ const app = express();
 
 // Middlewares
 app.use(cors({
-  origin: 'https://steam-lite-psi.vercel.app/' // O pon la URL de tu Vercel
+  origin: ['https://steam-lite-git-main-davidsplat.vercel.app', 'https://steam-lite-psi.vercel.app']
 }));
 app.use(express.json()); // Permite recibir datos en formato JSON
 
